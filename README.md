@@ -5,28 +5,21 @@ This is a Spring Boot project that demonstrates a heart animation using HTML5 ca
 ## Project Structure
 
 ```
-heart-animation
-├── src
-│   ├── main
-│   │   ├── java
-│   │   │   └── com
-│   │   │       └── blackhat
-│   │   │           └── heartanimation
-│   │   │               ├── HeartAnimationApplication.java
-│   │   │               └── controller
-│   │   │                   └── HeartController.java
-│   │   ├── resources
-│   │   │   ├── static
-│   │   │   │   └── heart.html
-│   │   │   └── application.properties
-│   └── test
-│       └── java
-│           └── com
-│               └── blackhat
-│                   └── heartanimation
-│                       └── HeartAnimationApplicationTests.java
-├── pom.xml
-└── README.md
+src/
+├── main/
+│   ├── java/
+│   │   └── com/example/demo/
+│   │       ├── DemoApplication.java
+│   │       └── controller/
+│   │           └── HomeController.java
+│   ├── resources/
+│   │   ├── static/
+│   │   │   └── snake/
+│   │   │       ├── index.html   <-- File game rắn săn mồi
+│   │   │       ├── style.css    <-- (optional) CSS tách riêng
+│   │   │       └── script.js    <-- (optional) JS tách riêng
+│   │   └── application.properties
+
 ```
 
 ## Prerequisites
