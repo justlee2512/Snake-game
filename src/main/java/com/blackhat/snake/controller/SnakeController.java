@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 public class SnakeController {
 
     @GetMapping("/")
-    public String getHeartAnimation() {
+    public String snakegame() {
         return "index";
     }
 }

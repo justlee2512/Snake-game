@@ -7,9 +7,9 @@ import org.springframework.context.annotation.ComponentScan;
 
 @SpringBootApplication
 @ComponentScan
-public class HeartAnimationApplication extends SpringBootServletInitializer {
+public class SnakeGameApplication extends SpringBootServletInitializer {
 
     public static void main(String[] args) {
-        SpringApplication.run(HeartAnimationApplication.class, args);
+        SpringApplication.run(SnakeGameApplication.class, args);
     }
 }
