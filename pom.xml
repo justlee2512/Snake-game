@@ -48,7 +48,7 @@
     </dependencies>
 
     <build>
-        <finalName>heart-animation-0.0.1</finalName>
+        <finalName>snake-game-0.0.1</finalName>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
