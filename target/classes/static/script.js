@@ -21,6 +21,9 @@ function gameLoop() {
 }
 
 function update() {
+    // Nếu chưa có hướng di chuyển thì không update rắn (không tự cắn khi chưa bấm phím)
+    if (dx === 0 && dy === 0) return;
+
     let head = { x: snake[0].x + dx, y: snake[0].y + dy };
 
     // Rắn đi xuyên tường
@@ -41,7 +44,7 @@ function update() {
 
     if (head.x === food.x && head.y === food.y) {
         score++;
-        speed = Math.max(50, baseSpeed - score * 5); // Tăng tốc mỗi lần ăn
+        speed = Math.max(50, baseSpeed - score * 5); // Tăng tốc
         clearInterval(intervalId);
         intervalId = setInterval(gameLoop, speed);
         placeFood();
@@ -54,7 +57,7 @@ function draw() {
     ctx.fillStyle = '#111';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Vẽ điểm số
+    // Hiển thị điểm số
     ctx.fillStyle = '#fff';
     ctx.font = '20px Arial';
     ctx.fillText('Score: ' + score, 10, 25);
@@ -127,7 +130,7 @@ document.addEventListener('keydown', e => {
     }
 });
 
-// Nút restart trên web
+// Nút restart trên web (nếu có)
 const restartBtn = document.getElementById('restart');
 if (restartBtn) {
     restartBtn.onclick = resetGame;
