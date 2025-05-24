@@ -8,6 +8,7 @@ let snake = [{ x: 10, y: 10 }];
 let food = { x: 5, y: 5 };
 let dx = 0;
 let dy = 0;
+let nextDirection = null;
 let baseSpeed = 150;
 let speed = baseSpeed;
 let intervalId;
@@ -22,7 +23,14 @@ function gameLoop() {
 
 function update() {
     // Nếu chưa có hướng di chuyển thì không update rắn (không tự cắn khi chưa bấm phím)
-    if (dx === 0 && dy === 0) return;
+    if (dx === 0 && dy === 0 && !nextDirection) return;
+
+    // Cập nhật hướng mới nếu có, chỉ update 1 lần mỗi frame
+    if (nextDirection) {
+        dx = nextDirection.dx;
+        dy = nextDirection.dy;
+        nextDirection = null;
+    }
 
     let head = { x: snake[0].x + dx, y: snake[0].y + dy };
 
@@ -99,6 +107,7 @@ function placeFood() {
 function resetGame() {
     snake = [{ x: 10, y: 10 }];
     dx = dy = 0;
+    nextDirection = null;
     score = 0;
     speed = baseSpeed;
     isGameOver = false;
@@ -119,14 +128,22 @@ document.addEventListener('keydown', e => {
         resetGame();
         return;
     }
-    if (e.key === 'ArrowUp' && dy === 0) {
-        dx = 0; dy = -1;
-    } else if (e.key === 'ArrowDown' && dy === 0) {
-        dx = 0; dy = 1;
-    } else if (e.key === 'ArrowLeft' && dx === 0) {
-        dx = -1; dy = 0;
-    } else if (e.key === 'ArrowRight' && dx === 0) {
-        dx = 1; dy = 0;
+    // Không cho rắn quay đầu 180 độ
+    if (e.key === 'ArrowUp' && dy === 0 && dx !== 0) {
+        nextDirection = { dx: 0, dy: -1 };
+    } else if (e.key === 'ArrowDown' && dy === 0 && dx !== 0) {
+        nextDirection = { dx: 0, dy: 1 };
+    } else if (e.key === 'ArrowLeft' && dx === 0 && dy !== 0) {
+        nextDirection = { dx: -1, dy: 0 };
+    } else if (e.key === 'ArrowRight' && dx === 0 && dy !== 0) {
+        nextDirection = { dx: 1, dy: 0 };
+    }
+    // Trường hợp bắt đầu game khi dx, dy đều bằng 0
+    else if (dx === 0 && dy === 0) {
+        if (e.key === 'ArrowUp') nextDirection = { dx: 0, dy: -1 };
+        else if (e.key === 'ArrowDown') nextDirection = { dx: 0, dy: 1 };
+        else if (e.key === 'ArrowLeft') nextDirection = { dx: -1, dy: 0 };
+        else if (e.key === 'ArrowRight') nextDirection = { dx: 1, dy: 0 };
     }
 });
 
