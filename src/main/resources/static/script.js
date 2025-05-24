@@ -16,22 +16,24 @@ function gameLoop() {
 }
 
 function update() {
-    const head = { x: snake[0].x + dx, y: snake[0].y + dy };
-    
-    if (head.x < 0 || head.x >= tileCount || head.y < 0 || head.y >= tileCount) {
-        resetGame();
-        return;
-    }
-    
+    let head = { x: snake[0].x + dx, y: snake[0].y + dy };
+
+    // Cho phép rắn đi xuyên tường (wrap around)
+    if (head.x < 0) head.x = tileCount - 1;
+    if (head.x >= tileCount) head.x = 0;
+    if (head.y < 0) head.y = tileCount - 1;
+    if (head.y >= tileCount) head.y = 0;
+
+    // Kiểm tra rắn cắn chính mình
     for (let part of snake) {
         if (part.x === head.x && part.y === head.y) {
             resetGame();
             return;
         }
     }
-    
+
     snake.unshift(head);
-    
+
     if (head.x === food.x && head.y === food.y) {
         placeFood();
     } else {
@@ -45,11 +47,11 @@ function draw() {
 
     ctx.fillStyle = '#0f0';
     for (let part of snake) {
-        ctx.fillRect(part.x * gridSize, part.y * gridSize, gridSize-2, gridSize-2);
+        ctx.fillRect(part.x * gridSize, part.y * gridSize, gridSize - 2, gridSize - 2);
     }
 
     ctx.fillStyle = '#f00';
-    ctx.fillRect(food.x * gridSize, food.y * gridSize, gridSize-2, gridSize-2);
+    ctx.fillRect(food.x * gridSize, food.y * gridSize, gridSize - 2, gridSize - 2);
 }
 
 function placeFood() {
