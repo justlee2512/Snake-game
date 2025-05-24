@@ -1,13 +1,359 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Snake Game</title>
-    <link rel="stylesheet" href="style.css">
+<meta charset="UTF-8">
+<title>Snake Neon Modern</title>
+<style>
+    body {
+        background: linear-gradient(130deg, #13161a 0%, #1c2934 100%);
+        min-height: 100vh;
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        user-select: none;
+        font-family: 'Segoe UI', Arial, sans-serif;
+    }
+    h1 {
+        color: #42f7b5;
+        margin-top: 40px;
+        letter-spacing: 3px;
+        font-size: 2.5rem;
+        text-shadow: 0 6px 20px #19eab288, 0 2px 2px #000c;
+    }
+    .score-box {
+        margin: 20px 0 16px 0;
+        background: linear-gradient(90deg, #253846, #233d4d 80%);
+        color: #fff;
+        padding: 16px 44px;
+        border-radius: 22px;
+        font-size: 1.6rem;
+        box-shadow: 0 4px 16px #0ff8, 0 1px 1px #fff1;
+        font-weight: bold;
+        letter-spacing: 2px;
+        transition: background 0.3s;
+        border: 2px solid #32e8b9;
+        position: relative;
+        overflow: hidden;
+        min-width: 160px;
+        text-align: center;
+    }
+    .score-box.animated {
+        background: linear-gradient(90deg, #39e6f7, #32e8b9 80%);
+        box-shadow: 0 0 30px #6fffe8, 0 2px 16px #fff1;
+        animation: popscore .3s;
+    }
+    @keyframes popscore {
+        0% { transform: scale(1.1);}
+        60%{transform: scale(1.18);}
+        100% {transform: scale(1);}
+    }
+    #game {
+        margin-bottom: 32px;
+        border-radius: 28px;
+        background: #141d26;
+        box-shadow: 0 8px 40px #0ef7 0 2px 1px #fff2;
+        border: 3px solid #39e6f7;
+        display: block;
+        transition: box-shadow .22s;
+    }
+    .restart-btn {
+        padding: 16px 44px;
+        font-size: 1.25rem;
+        border-radius: 18px;
+        background: linear-gradient(90deg, #42f7b5, #39e6f7 80%);
+        color: #112;
+        border: none;
+        font-weight: bold;
+        cursor: pointer;
+        transition: background 0.2s, box-shadow 0.2s, transform .1s;
+        margin-top: 20px;
+        box-shadow: 0 3px 22px #32e8b9c7;
+        letter-spacing: 2px;
+    }
+    .restart-btn:hover {
+        background: linear-gradient(90deg, #7ef7d7, #70e0f7 100%);
+        box-shadow: 0 6px 26px #32e8b9d9;
+        transform: scale(1.07);
+    }
+</style>
 </head>
 <body>
-<canvas id="game" width="400" height="400"></canvas>
-<button id="restart" style="margin-top:10px;">Restart</button>
-<script src="script.js"></script>
+<h1>🐍 SNAKE NEON</h1>
+<div class="score-box" id="score-box">Score: 0</div>
+<canvas id="game" width="600" height="600"></canvas>
+<button id="restart" class="restart-btn" style="display:none;">Restart</button>
+
+<script>
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+const scoreBox = document.getElementById('score-box');
+const restartBtn = document.getElementById('restart');
+
+// Config
+const gridSize = 24;
+const tileCountX = canvas.width / gridSize;
+const tileCountY = canvas.height / gridSize;
+const neonSnakeColors = [
+    "#00fff7", "#42f7b5", "#13cfff", "#12e3be",
+    "#3fffa8", "#7af9e5", "#8ff8e4", "#5effb0"
+];
+
+// Game state
+let snake, food, dx, dy, nextDirection, baseSpeed, speed, intervalId, score, isGameOver;
+let foodGlow = 0, foodGlowDir = 1, foodPop = 0;
+
+// Grid effect
+function drawGrid() {
+    ctx.save();
+    let grad = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+    grad.addColorStop(0, "#10181c");
+    grad.addColorStop(1, "#222c33");
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    ctx.strokeStyle = '#22e8b91a';
+    ctx.lineWidth = 1;
+    for (let i = 1; i < tileCountX; i++) {
+        ctx.beginPath();
+        ctx.moveTo(i * gridSize, 0);
+        ctx.lineTo(i * gridSize, canvas.height);
+        ctx.stroke();
+    }
+    for (let i = 1; i < tileCountY; i++) {
+        ctx.beginPath();
+        ctx.moveTo(0, i * gridSize);
+        ctx.lineTo(canvas.width, i * gridSize);
+        ctx.stroke();
+    }
+    ctx.restore();
+}
+
+function gameLoop() {
+    if (isGameOver) return;
+    update();
+    draw();
+}
+
+function update() {
+    // Animate food glow & pop
+    foodGlow += foodGlowDir * 0.22;
+    if (foodGlow > 3) foodGlowDir = -1;
+    if (foodGlow < 0) foodGlowDir = 1;
+    if (foodPop > 0) foodPop -= 0.15;
+
+    if (dx === 0 && dy === 0 && !nextDirection) return;
+
+    if (nextDirection) {
+        dx = nextDirection.dx;
+        dy = nextDirection.dy;
+        nextDirection = null;
+    }
+
+    let head = { x: snake[0].x + dx, y: snake[0].y + dy };
+    // Xuyên tường
+    if (head.x < 0) head.x = tileCountX - 1;
+    if (head.x >= tileCountX) head.x = 0;
+    if (head.y < 0) head.y = tileCountY - 1;
+    if (head.y >= tileCountY) head.y = 0;
+
+    for (let part of snake) {
+        if (part.x === head.x && part.y === head.y) {
+            gameOver();
+            return;
+        }
+    }
+    snake.unshift(head);
+
+    if (head.x === food.x && head.y === food.y) {
+        score++;
+        speed = Math.max(45, baseSpeed - score * 5);
+        clearInterval(intervalId);
+        intervalId = setInterval(gameLoop, speed);
+        placeFood();
+        // Hiệu ứng ăn mồi
+        foodPop = 2.3;
+        scoreBox.classList.add("animated");
+        setTimeout(() => scoreBox.classList.remove("animated"), 280);
+    } else {
+        snake.pop();
+    }
+}
+
+function drawSnake() {
+    for (let i = 0; i < snake.length; i++) {
+        let part = snake[i];
+        let color = neonSnakeColors[i % neonSnakeColors.length];
+        // Đầu rắn
+        if (i === 0) {
+            let grad = ctx.createRadialGradient(
+                part.x * gridSize + gridSize/2, part.y * gridSize + gridSize/2, gridSize/4,
+                part.x * gridSize + gridSize/2, part.y * gridSize + gridSize/2, gridSize/1.1
+            );
+            grad.addColorStop(0, "#fff");
+            grad.addColorStop(0.45, "#39e6f7");
+            grad.addColorStop(0.9, "#009a97");
+            ctx.save();
+            ctx.shadowColor = "#39e6f7";
+            ctx.shadowBlur = 18;
+            ctx.fillStyle = grad;
+            ctx.fillRect(part.x * gridSize + 2, part.y * gridSize + 2, gridSize - 4, gridSize - 4);
+            ctx.restore();
+            // Vẽ mắt
+            let eyeOffset = [
+                { x: 6, y: 6 }, { x: 6, y: 6 }, // up
+                { x: 6, y: gridSize-8 }, { x: 6, y: gridSize-8 }, // down
+                { x: gridSize-10, y: 6 }, { x: gridSize-10, y: gridSize-8 }, // right
+                { x: 6, y: 6 }, { x: 6, y: gridSize-8 } // left
+            ];
+            let eye1, eye2;
+            if (dy === -1)      { eye1 = {x: part.x*gridSize+6, y: part.y*gridSize+7}; eye2 = {x: part.x*gridSize+gridSize-10, y: part.y*gridSize+7}; }
+            else if (dy === 1)  { eye1 = {x: part.x*gridSize+6, y: part.y*gridSize+gridSize-9}; eye2 = {x: part.x*gridSize+gridSize-10, y: part.y*gridSize+gridSize-9}; }
+            else if (dx === 1)  { eye1 = {x: part.x*gridSize+gridSize-9, y: part.y*gridSize+6}; eye2 = {x: part.x*gridSize+gridSize-9, y: part.y*gridSize+gridSize-10}; }
+            else                { eye1 = {x: part.x*gridSize+7, y: part.y*gridSize+6}; eye2 = {x: part.x*gridSize+7, y: part.y*gridSize+gridSize-10}; }
+            ctx.save();
+            ctx.fillStyle = "#232";
+            ctx.beginPath();
+            ctx.arc(eye1.x, eye1.y, 2.3, 0, 2 * Math.PI); ctx.fill();
+            ctx.beginPath();
+            ctx.arc(eye2.x, eye2.y, 2.3, 0, 2 * Math.PI); ctx.fill();
+            ctx.restore();
+        } else {
+            ctx.save();
+            ctx.shadowColor = color + "d7";
+            ctx.shadowBlur = 8;
+            ctx.fillStyle = color;
+            ctx.fillRect(part.x * gridSize + 2, part.y * gridSize + 2, gridSize - 4, gridSize - 4);
+            ctx.restore();
+        }
+    }
+}
+
+function drawFood() {
+    let pop = 1 + foodPop * 0.23;
+    let foodX = food.x * gridSize + gridSize/2;
+    let foodY = food.y * gridSize + gridSize/2;
+    let glow = 15 + Math.sin(foodGlow) * 8;
+
+    ctx.save();
+    ctx.shadowColor = "#ff7b44";
+    ctx.shadowBlur = 18 + glow;
+    ctx.globalAlpha = 0.82;
+    ctx.beginPath();
+    ctx.arc(foodX, foodY, gridSize/2.4 * pop, 0, 2 * Math.PI);
+    ctx.fillStyle = "#ff7b44";
+    ctx.fill();
+    ctx.restore();
+
+    // Chấm sáng trên food
+    ctx.save();
+    ctx.globalAlpha = 0.8;
+    ctx.beginPath();
+    ctx.arc(foodX + 6, foodY - 6, gridSize/8 * pop, 0, 2 * Math.PI);
+    ctx.fillStyle = "#fff9";
+    ctx.fill();
+    ctx.restore();
+}
+
+function draw() {
+    drawGrid();
+    drawSnake();
+    drawFood();
+
+    scoreBox.textContent = "Score: " + score;
+
+    if (isGameOver) {
+        ctx.save();
+        // Animate "Game Over" (fade in)
+        ctx.globalAlpha = 0.78;
+        ctx.fillStyle = "#19252e";
+        ctx.fillRect(0, canvas.height/2-98, canvas.width, 196);
+        ctx.globalAlpha = 1;
+        ctx.textAlign = "center";
+        ctx.font = "bold 62px 'Segoe UI', Arial";
+        let grad = ctx.createLinearGradient(0, 0, canvas.width, 0);
+        grad.addColorStop(0, "#42f7b5");
+        grad.addColorStop(1, "#39e6f7");
+        ctx.fillStyle = grad;
+        ctx.fillText("GAME OVER", canvas.width/2, canvas.height/2 + 4);
+        ctx.font = "26px 'Segoe UI', Arial";
+        ctx.fillStyle = "#fff";
+        ctx.fillText("Press [Space] or Restart", canvas.width/2, canvas.height/2 + 48);
+        ctx.textAlign = "left";
+        ctx.restore();
+        restartBtn.style.display = "inline-block";
+    } else {
+        restartBtn.style.display = "none";
+    }
+}
+
+function placeFood() {
+    let newFood;
+    while (true) {
+        newFood = {
+            x: Math.floor(Math.random() * tileCountX),
+            y: Math.floor(Math.random() * tileCountY)
+        };
+        if (!snake.some(part => part.x === newFood.x && part.y === newFood.y)) break;
+    }
+    food = newFood;
+}
+
+function resetGame() {
+    snake = [{ x: Math.floor(tileCountX/2), y: Math.floor(tileCountY/2) }];
+    dx = dy = 0;
+    nextDirection = null;
+    score = 0;
+    baseSpeed = 150;
+    speed = baseSpeed;
+    isGameOver = false;
+    foodGlow = Math.random() * 3;
+    foodGlowDir = Math.random() > 0.5 ? 1 : -1;
+    foodPop = 0;
+    placeFood();
+    clearInterval(intervalId);
+    intervalId = setInterval(gameLoop, speed);
+    draw();
+}
+
+function gameOver() {
+    isGameOver = true;
+    clearInterval(intervalId);
+    draw();
+}
+
+document.addEventListener('keydown', e => {
+    if (isGameOver && (e.key === ' ' || e.key === 'Spacebar')) {
+        resetGame();
+        return;
+    }
+    if (e.key === 'ArrowUp' && dy === 0 && dx !== 0) {
+        nextDirection = { dx: 0, dy: -1 };
+    } else if (e.key === 'ArrowDown' && dy === 0 && dx !== 0) {
+        nextDirection = { dx: 0, dy: 1 };
+    } else if (e.key === 'ArrowLeft' && dx === 0 && dy !== 0) {
+        nextDirection = { dx: -1, dy: 0 };
+    } else if (e.key === 'ArrowRight' && dx === 0 && dy !== 0) {
+        nextDirection = { dx: 1, dy: 0 };
+    }
+    else if (dx === 0 && dy === 0) {
+        if (e.key === 'ArrowUp') nextDirection = { dx: 0, dy: -1 };
+        else if (e.key === 'ArrowDown') nextDirection = { dx: 0, dy: 1 };
+        else if (e.key === 'ArrowLeft') nextDirection = { dx: -1, dy: 0 };
+        else if (e.key === 'ArrowRight') nextDirection = { dx: 1, dy: 0 };
+    }
+});
+
+restartBtn.onclick = resetGame;
+
+// Animation loop (food + redraw mượt)
+function animate() {
+    if (!isGameOver) draw();
+    requestAnimationFrame(animate);
+}
+
+resetGame();
+animate();
+</script>
 </body>
 </html>
